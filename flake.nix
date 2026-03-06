@@ -92,6 +92,51 @@
             
             # Create a symlink for oo7 -> oo7-cli as in conda recipe
             ln -sf oo7-cli $out/bin/oo7
+
+            # Install D-Bus and systemd service files
+            mkdir -p $out/share/dbus-1/services
+            mkdir -p $out/share/systemd/user
+            mkdir -p $out/share/xdg-desktop-portal/portals
+            mkdir -p $out/share/applications
+
+            # Define variables for replacement
+            # We use $out as the prefix
+            
+            # 1. oo7-daemon
+            # Systemd user service
+            sed -e "s|@libexecdir@|$out/bin|g" \
+                -e "s|@binary@|oo7-daemon|g" \
+                server/data/oo7-daemon.service.in > $out/share/systemd/user/oo7-daemon.service
+            
+            # D-Bus service file
+            sed -e "s|@dbus_known_name@|org.freedesktop.secrets|g" \
+                server/data/org.freedesktop.secrets.service.in > $out/share/dbus-1/services/org.freedesktop.secrets.service
+            
+            # D-Bus systemd activation symlink
+            ln -sf oo7-daemon.service $out/share/systemd/user/dbus-org.freedesktop.secrets.service
+
+            # 2. oo7-portal
+            # Systemd user service
+            sed -e "s|@libexecdir@|$out/bin|g" \
+                -e "s|@bin_name@|oo7-portal|g" \
+                -e "s|@dbus_name@|org.freedesktop.impl.portal.desktop.oo7|g" \
+                portal/data/oo7-portal.service.in > $out/share/systemd/user/oo7-portal.service
+            
+            # D-Bus service file
+            sed -e "s|@dbus_name@|org.freedesktop.impl.portal.desktop.oo7|g" \
+                portal/data/org.freedesktop.impl.portal.desktop.oo7.service.in > $out/share/dbus-1/services/org.freedesktop.impl.portal.desktop.oo7.service
+            
+            # D-Bus systemd activation symlink
+            ln -sf oo7-portal.service $out/share/systemd/user/dbus-org.freedesktop.impl.portal.desktop.oo7.service
+
+            # Portal definition
+            sed -e "s|@dbus_name@|org.freedesktop.impl.portal.desktop.oo7|g" \
+                portal/data/oo7-portal.portal.in > $out/share/xdg-desktop-portal/portals/oo7-portal.portal
+            
+            # Desktop file
+            sed -e "s|@libexecdir@|$out/bin|g" \
+                -e "s|@bin_name@|oo7-portal|g" \
+                portal/data/oo7-portal.desktop.in > $out/share/applications/oo7-portal.desktop
           '';
         });
 
