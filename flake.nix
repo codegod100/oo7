@@ -41,6 +41,10 @@
             (lib.hasSuffix ".py" path) ||
             (lib.hasSuffix ".pyi" path) ||
             (lib.hasSuffix "py.typed" path) ||
+            (lib.hasSuffix ".md" path) ||
+            (lib.hasSuffix ".desktop.in" path) ||
+            (lib.hasSuffix ".portal.in" path) ||
+            (lib.hasSuffix ".service.in" path) ||
             (lib.hasInfix "/fixtures/" path) ||
             (lib.hasInfix "/data/" path) ||
             (craneLib.filterCargoSources path type);
