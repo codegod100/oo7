@@ -60,6 +60,7 @@
             pkg-config
             gettext
             python3
+            dbus # Added for tests if run manually
           ];
 
           buildInputs = with pkgs; [
@@ -77,6 +78,11 @@
 
           # Build all binaries and the PAM module
           cargoExtraArgs = "--workspace";
+
+          # Integration tests require a running D-Bus session and a Secret Service
+          # provider (like gnome-keyring or oo7-daemon itself), which are not
+          # available in the Nix build sandbox.
+          doCheck = false;
 
           postInstall = ''
             # Move the PAM module to the expected location
