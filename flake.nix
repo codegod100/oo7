@@ -14,7 +14,85 @@
   };
 
   outputs = { self, nixpkgs, crane, rust-overlay, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+    let
+      mkHomeManagerModule = { config, lib, pkgs, ... }:
+        let
+          cfg = config.services.oo7;
+        in
+        {
+          options.services.oo7 = {
+            enable = lib.mkEnableOption "the oo7 Secret Service daemon";
+
+            package = lib.mkOption {
+              type = lib.types.package;
+              default = self.packages.${pkgs.system}.default;
+              defaultText = lib.literalExpression "self.packages.\${pkgs.system}.default";
+              description = "The oo7 package to install and run.";
+            };
+
+            verbose = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Whether to run oo7-daemon with --verbose.";
+            };
+
+            extraArgs = lib.mkOption {
+              type = with lib.types; listOf str;
+              default = [ ];
+              description = "Additional command-line arguments to pass to oo7-daemon.";
+            };
+
+            importCredential = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Whether to import the oo7 systemd credential for keyring unlocking.";
+            };
+          };
+
+          config = lib.mkIf cfg.enable {
+            home.packages = [ cfg.package ];
+
+            systemd.user.startServices = lib.mkDefault "sd-switch";
+            systemd.user.services.oo7-daemon = {
+              Unit = {
+                Description = "Secret service (oo7 implementation)";
+              };
+
+              Service = {
+                Type = "simple";
+                StandardError = "journal";
+                ExecStart =
+                  let
+                    args = lib.concatStringsSep " " ((lib.optional cfg.verbose "--verbose") ++ cfg.extraArgs);
+                  in
+                  "${lib.getExe' cfg.package "oo7-daemon"}${lib.optionalString (args != "") " ${args}"}";
+                Restart = "on-failure";
+                TimeoutStartSec = "30s";
+                TimeoutStopSec = "30s";
+                NoNewPrivileges = true;
+                SupplementaryGroups = "";
+                PrivateUsers = true;
+                ProtectSystem = "full";
+                PrivateTmp = true;
+                PrivateDevices = true;
+                PrivateNetwork = true;
+                ProtectKernelTunables = true;
+                ProtectKernelModules = true;
+                ProtectControlGroups = true;
+                MemoryDenyWriteExecute = true;
+                ProtectClock = true;
+              } // lib.optionalAttrs cfg.importCredential {
+                ImportCredential = "oo7.keyring-encryption-password";
+              };
+
+              Install = {
+                WantedBy = [ "default.target" ];
+              };
+            };
+          };
+        };
+    in
+    (flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
@@ -187,5 +265,15 @@
           ];
         };
       }
-    );
+    )) // {
+      homeModules = {
+        default = mkHomeManagerModule;
+        oo7 = mkHomeManagerModule;
+      };
+
+      homeManagerModules = {
+        default = mkHomeManagerModule;
+        oo7 = mkHomeManagerModule;
+      };
+    };
 }

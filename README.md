@@ -13,6 +13,37 @@ The repository consists of the following projects:
 - [portal](./portal/): [org.freedesktop.impl.portal.Secret](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.impl.portal.Secret.html) implementation
 - [server](./server/): [org.freedesktop.secrets](https://specifications.freedesktop.org/secret-service-spec/latest/) server implementation
 
+## Home Manager
+
+The flake exports both packages and a reusable Home Manager module. Consumers
+can install the package and enable the user service directly from the flake:
+
+```nix
+{
+  inputs.oo7.url = "github:linux-credentials/oo7";
+
+  outputs = { nixpkgs, home-manager, oo7, ... }: {
+    homeConfigurations.example = home-manager.lib.homeManagerConfiguration {
+      pkgs = import nixpkgs { system = "x86_64-linux"; };
+      modules = [
+        oo7.homeModules.oo7
+        {
+          services.oo7.enable = true;
+        }
+      ];
+    };
+  };
+}
+```
+
+The module installs `oo7` into the user profile and manages the
+`oo7-daemon.service` user unit. It also exposes:
+
+- `services.oo7.package`
+- `services.oo7.verbose`
+- `services.oo7.extraArgs`
+- `services.oo7.importCredential`
+
 ## Hacking on oo7 services
 
 ### Testing oo7-daemon
