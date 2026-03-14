@@ -38,6 +38,14 @@ unsafe extern "C" {
         prompt: *const c_char,
     ) -> c_int;
 
+    /// Get the authentication token using the PAM conversation stack.
+    pub fn pam_get_authtok(
+        pamh: *mut pam_handle_t,
+        item: c_int,
+        authtok: *mut *const c_char,
+        prompt: *const c_char,
+    ) -> c_int;
+
     /// Get a PAM item
     pub fn pam_get_item(
         pamh: *const pam_handle_t,

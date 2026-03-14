@@ -58,12 +58,12 @@ unsafe fn get_auth_token_internal(
     item_type: c_int,
     item_name: &str,
 ) -> Result<Zeroizing<Vec<u8>>, c_int> {
-    let mut authtok_ptr: *const std::os::raw::c_void = std::ptr::null();
+    let mut authtok_ptr: *const c_char = std::ptr::null();
 
-    let ret = unsafe { ffi::pam_get_item(pamh, item_type, &mut authtok_ptr) };
+    let ret = unsafe { ffi::pam_get_authtok(pamh, item_type, &mut authtok_ptr, std::ptr::null()) };
 
     if ret != PAM_SUCCESS {
-        tracing::debug!("pam_get_item({}) returned error: {}", item_name, ret);
+        tracing::debug!("pam_get_authtok({}) returned error: {}", item_name, ret);
         return Err(ret);
     }
 
@@ -73,7 +73,7 @@ unsafe fn get_auth_token_internal(
     }
 
     // Convert to C string
-    let password_cstr = unsafe { CStr::from_ptr(authtok_ptr as *const c_char) };
+    let password_cstr = unsafe { CStr::from_ptr(authtok_ptr) };
     let password_bytes = password_cstr.to_bytes().to_vec();
 
     tracing::debug!(
